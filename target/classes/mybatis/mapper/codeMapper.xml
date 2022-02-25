@@ -1,0 +1,903 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.test.test.spring.repository.CodeMapper">
+
+    <select id="selectMenuDetailsByCompanyAndMenu" resultType="hashmap"> 
+      select a.* ,
+   (
+     select listagg( CD_TP1||'="'||CD_TP_MEANING||'"', ' ') within  GROUP(ORDER BY CD_TP1||'="'||CD_TP_MEANING||'"')
+     from POSMINI.TB_U40_ES_MA_101
+     where CD_TP=a.CD_TP1 AND 
+     <if test="companyCode eq '30' ">
+     			COMPANY_CODE IN ('00',#{companyCode})
+     </if>
+	 <if test="companyCode != '30' ">
+     			COMPANY_CODE IN ('00','F00',#{companyCode})
+     </if>
+    ) menu_metas
+ from(
+ select b.* 
+    from( 
+     select ATTRIBUTE1 menuID ,
+       CD_TP_MEANING kor_name,
+       ATTRIBUTE3 eng_name,
+       CD_TP1,
+       CD_V_EXPLAIN,
+       FK_CD_TP,
+       SEARCH_SORT_SEQ,
+       DEPTH,
+       ATTRIBUTE2 menushowYN,
+       COMPANY_CODE useComCode,
+       nvl(ATTRIBUTE5, '-') notUseComCode,
+       ATTRIBUTE4 infraType
+     from POSMINI.TB_U40_ES_MA_101
+     where CD_TP='ES_MENU'
+     and ACTIVE_FLAG='Y' --삭제여부
+    and ATTRIBUTE2='Y'  --메뉴xml에 표시여부(폐기된 구메뉴 또는 검색LOG등록을 위한 코드일 경우 N)
+    <if test="infraType !=null ">
+ 	and ATTRIBUTE4 in ('ALL',#{infraType}) --메뉴의 서버 용도 확인(가동계전용메뉴:SMART, 테스트계전용메뉴:USMART, 전체서버공통메뉴:ALL)
+	</if>
+    <if test="companyCode eq '30' ">
+ 	and COMPANY_CODE in ('00',#{companyCode}) --사용회사
+	</if>
+	 <if test="companyCode != '30' ">
+ 	and COMPANY_CODE in ('00','F00',#{companyCode}) --사용회사
+	</if>
+	and NOT REGEXP_LIKE(nvl(ATTRIBUTE5,'00') ,#{companyCode}) --미사용회사
+	 ) b
+	 <if test="cd_tp1 !=null">
+		WHERE CD_TP1=#{cd_tp1}
+	</if>
+      start with nvl(FK_CD_TP, '0')='0' connect by PRIOR CD_TP1=FK_CD_TP
+	ORDER siblings BY 
+		SEARCH_SORT_SEQ asc 
+	
+     ) a
+	
+    </select>
+    
+    <select id="selectMenuProperties" resultType="hashmap">
+ 			SELECT * FROM (
+			     SELECT A.*,
+			                 ROWNUM AS RNUM,
+			                 COUNT(*) OVER() AS TOTCNT FROM (
+			          SELECT 
+			    		NVL(COMPANY_CODE,'') COMPANY_CODE, NVL(CD_TP,'') CD_TP, NVL(CD_TP1,'') CD_TP1, 
+			    		NVL(CD_TP_MEANING,'') CD_TP_MEANING, NVL(CD_V_EXPLAIN,'') CD_V_EXPLAIN, 
+			    		NVL(FK_CD_TP,'') FK_CD_TP, NVL(SEARCH_SORT_SEQ,'') SEARCH_SORT_SEQ, NVL(DEPTH,'') DEPTH, 
+			    		NVL(START_ACTIVE_DATE,'') START_ACTIVE_DATE, NVL(END_DATE_ACTIVE,'') END_DATE_ACTIVE, 
+			    		NVL(ACTIVE_FLAG,'') ACTIVE_FLAG, NVL(ATTRIBUTE1,'') ATTRIBUTE1, NVL(ATTRIBUTE2,'') ATTRIBUTE2, 
+			    		NVL(ATTRIBUTE3,'') ATTRIBUTE3, NVL(ATTRIBUTE4,'') ATTRIBUTE4, NVL(ATTRIBUTE5,'') ATTRIBUTE5, 
+			    		NVL(TO_CHAR(CREATION_TIMESTAMP),'') CREATION_TIMESTAMP, NVL(TO_CHAR(LAST_UPDATE_TIMESTAMP),'') LAST_UPDATE_TIMESTAMP
+					FROM 
+						POSMINI.TB_U40_ES_MA_101
+			 		WHERE
+			 			1=1 
+			 			AND CD_TP='ES_MENU'
+			    		AND ACTIVE_FLAG='Y'
+			    		<if test="where !=null">
+						AND (
+							UPPER(CD_V_EXPLAIN) LIKE UPPER('%${where}%')
+							OR UPPER(CD_TP_MEANING) LIKE UPPER('%${where}%')
+							OR UPPER(ATTRIBUTE1) LIKE UPPER('%${where}%')
+							)
+						</if>
+			   		ORDER BY 
+			   			${orderBy}
+			    ) A
+			    
+			     
+			)<if test="length !=-1"> 
+			WHERE RNUM <![CDATA[> #{start} AND RNUM <= #{length}]]>
+			</if>
+     
+    </select>
+    
+    <select id="selectMenuMetaCode" resultType="hashmap">
+ 			SELECT * FROM (
+			     SELECT A.*,
+			                 ROWNUM AS RNUM,
+			                 COUNT(*) OVER() AS TOTCNT FROM (
+			          SELECT 
+			    		NVL(COMPANY_CODE,'') COMPANY_CODE, NVL(CD_TP,'') CD_TP, NVL(CD_TP1,'') CD_TP1, 
+			    		NVL(CD_TP_MEANING,'') CD_TP_MEANING, NVL(CD_V_EXPLAIN,'') CD_V_EXPLAIN, 
+			    		NVL(FK_CD_TP,'') FK_CD_TP, NVL(SEARCH_SORT_SEQ,'') SEARCH_SORT_SEQ, NVL(DEPTH,'') DEPTH, 
+			    		NVL(START_ACTIVE_DATE,'') START_ACTIVE_DATE, NVL(END_DATE_ACTIVE,'') END_DATE_ACTIVE, 
+			    		NVL(ACTIVE_FLAG,'') ACTIVE_FLAG, NVL(ATTRIBUTE1,'') ATTRIBUTE1, NVL(ATTRIBUTE2,'') ATTRIBUTE2, 
+			    		NVL(ATTRIBUTE3,'') ATTRIBUTE3, NVL(ATTRIBUTE4,'') ATTRIBUTE4, NVL(ATTRIBUTE5,'') ATTRIBUTE5, 
+			    		NVL(TO_CHAR(CREATION_TIMESTAMP),'') CREATION_TIMESTAMP, NVL(TO_CHAR(LAST_UPDATE_TIMESTAMP),'') LAST_UPDATE_TIMESTAMP
+					FROM 
+						POSMINI.TB_U40_ES_MA_101
+			 		WHERE
+			 			1=1 
+			 			AND CD_TP='ES_MENU_META'
+			    		<if test="where !=null">
+						AND (
+							UPPER(CD_V_EXPLAIN) LIKE UPPER('%${where}%')
+							OR UPPER(CD_TP_MEANING) LIKE UPPER('%${where}%')
+							OR UPPER(CD_TP1) LIKE UPPER('%${where}%')
+							)
+						</if>
+			   		ORDER BY 
+			   			${orderBy}
+			    ) A
+			    
+			     
+			)<if test="length !=-1"> 
+			WHERE RNUM <![CDATA[> #{start} AND RNUM <= #{length}]]>
+			</if>
+     
+    </select>
+    
+    <select id="selectLogCode" resultType="hashmap">
+ 			SELECT * FROM (
+			     SELECT A.*,
+			                 ROWNUM AS RNUM,
+			                 COUNT(*) OVER() AS TOTCNT FROM (
+			          SELECT 
+			    		NVL(COMPANY_CODE,'') COMPANY_CODE, NVL(CD_TP,'') CD_TP, NVL(CD_TP1,'') CD_TP1, 
+			    		NVL(CD_TP_MEANING,'') CD_TP_MEANING, NVL(CD_V_EXPLAIN,'') CD_V_EXPLAIN, 
+			    		NVL(FK_CD_TP,'') FK_CD_TP, NVL(SEARCH_SORT_SEQ,'') SEARCH_SORT_SEQ, NVL(DEPTH,'') DEPTH, 
+			    		NVL(START_ACTIVE_DATE,'') START_ACTIVE_DATE, NVL(END_DATE_ACTIVE,'') END_DATE_ACTIVE, 
+			    		NVL(ACTIVE_FLAG,'') ACTIVE_FLAG, NVL(ATTRIBUTE1,'') ATTRIBUTE1, NVL(ATTRIBUTE2,'') ATTRIBUTE2, 
+			    		NVL(ATTRIBUTE3,'') ATTRIBUTE3, NVL(ATTRIBUTE4,'') ATTRIBUTE4, NVL(ATTRIBUTE5,'') ATTRIBUTE5, 
+			    		NVL(TO_CHAR(CREATION_TIMESTAMP),'') CREATION_TIMESTAMP, NVL(TO_CHAR(LAST_UPDATE_TIMESTAMP),'') LAST_UPDATE_TIMESTAMP
+					FROM 
+						POSMINI.TB_U40_ES_MA_101
+			 		WHERE
+			 			1=1
+			 			<if test="cd_tp_params !=null">
+			 			AND CD_TP='${cd_tp_params}'
+			 			</if> 
+			    		<if test="where !=null">
+						AND (
+							UPPER(CD_V_EXPLAIN) LIKE UPPER('%${where}%')
+							OR UPPER(CD_TP_MEANING) LIKE UPPER('%${where}%')
+							OR UPPER(ATTRIBUTE1) LIKE UPPER('%${where}%')
+							OR UPPER(CD_TP1) LIKE UPPER('%${where}%')
+							)
+						</if>
+			   		ORDER BY 
+			   			${orderBy}
+			    ) A
+			    
+			     
+			)<if test="length !=-1"> 
+			WHERE RNUM <![CDATA[> #{start} AND RNUM <= #{length}]]>
+			</if>
+     
+    </select>
+    
+    <select id="selectCodeTypeInfo" resultType="hashmap">
+ 			SELECT * FROM (
+			     SELECT A.*,
+			                 ROWNUM AS RNUM,
+			                 COUNT(*) OVER() AS TOTCNT FROM (
+			          SELECT 
+			    		NVL(COMPANY_CODE,'') COMPANY_CODE, NVL(CD_TP,'') CD_TP,  
+			    		NVL(CD_TP_MEANING,'') CD_TP_MEANING, NVL(CD_V_EXPLAIN,'') CD_V_EXPLAIN, 
+			    		NVL(FK_CD_TP,'') FK_CD_TP, NVL(SEARCH_SORT_SEQ,'') SEARCH_SORT_SEQ, NVL(DEPTH,'') DEPTH, 
+			    		NVL(ACTIVE_FLAG,'') ACTIVE_FLAG, NVL(ATTRIBUTE1,'') ATTRIBUTE1, NVL(ATTRIBUTE2,'') ATTRIBUTE2, 
+			    		NVL(ATTRIBUTE3,'') ATTRIBUTE3, NVL(ATTRIBUTE4,'') ATTRIBUTE4, NVL(ATTRIBUTE5,'') ATTRIBUTE5, 
+			    		NVL(TO_CHAR(CREATION_TIMESTAMP),'') CREATION_TIMESTAMP, NVL(TO_CHAR(LAST_UPDATE_TIMESTAMP),'') LAST_UPDATE_TIMESTAMP
+					FROM 
+						POSMINI.TB_U40_ES_MA_102
+			 		WHERE
+			 			1=1 
+			 			AND FK_CD_TP IS NULL
+			    		<if test="where !=null">
+						AND (
+							UPPER(CD_V_EXPLAIN) LIKE UPPER('%${where}%')
+							OR UPPER(CD_TP_MEANING) LIKE UPPER('%${where}%')
+							OR UPPER(CD_TP) LIKE UPPER('%${where}%')
+							)
+						</if>
+			   		ORDER BY 
+			   			${orderBy}
+			    ) A
+			    
+			     
+			)<if test="length !=-1"> 
+			WHERE RNUM <![CDATA[> #{start} AND RNUM <= #{length}]]>
+			</if>
+     
+    </select>
+    
+    <select id="selectCodeTypeInfoDetail" resultType="hashmap">
+ 			SELECT * FROM (
+			     SELECT A.*,
+			                 ROWNUM AS RNUM,
+			                 COUNT(*) OVER() AS TOTCNT FROM (
+			          SELECT 
+			    		NVL(COMPANY_CODE,'') COMPANY_CODE, NVL(CD_TP,'') CD_TP,  
+			    		NVL(CD_TP_MEANING,'') CD_TP_MEANING, NVL(CD_V_EXPLAIN,'') CD_V_EXPLAIN, 
+			    		NVL(FK_CD_TP,'') FK_CD_TP, NVL(SEARCH_SORT_SEQ,'') SEARCH_SORT_SEQ, NVL(DEPTH,'') DEPTH, 
+			    		NVL(ACTIVE_FLAG,'') ACTIVE_FLAG, NVL(ATTRIBUTE1,'') ATTRIBUTE1, NVL(ATTRIBUTE2,'') ATTRIBUTE2, 
+			    		NVL(ATTRIBUTE3,'') ATTRIBUTE3, NVL(ATTRIBUTE4,'') ATTRIBUTE4, NVL(ATTRIBUTE5,'') ATTRIBUTE5, 
+			    		NVL(TO_CHAR(CREATION_TIMESTAMP),'') CREATION_TIMESTAMP, NVL(TO_CHAR(LAST_UPDATE_TIMESTAMP),'') LAST_UPDATE_TIMESTAMP
+					FROM 
+						POSMINI.TB_U40_ES_MA_102
+			 		WHERE
+			 			1=1 
+			 			AND FK_CD_TP = #{fk_cd_tp} 
+			    		<if test="where !=null">
+						AND (
+							UPPER(CD_V_EXPLAIN) LIKE UPPER('%${where}%')
+							OR UPPER(CD_TP_MEANING) LIKE UPPER('%${where}%')
+							OR UPPER(CD_TP) LIKE UPPER('%${where}%')
+							)
+						</if>
+			   		ORDER BY 
+			   			${orderBy}
+			    ) A
+			    
+			     
+			)<if test="length !=-1"> 
+			WHERE RNUM <![CDATA[> #{start} AND RNUM <= #{length}]]>
+			</if>
+     
+    </select>
+    
+    <select id="selectMenuMetas" resultType="hashmap"> <![CDATA[
+	    SELECT CD_TP_MEANING, CD_TP1, CD_V_EXPLAIN
+	    FROM 
+	    	POSMINI.TB_U40_ES_MA_101
+    	WHERE 
+    		CD_TP='ES_MENU_META'
+    	ORDER BY 
+    		CD_TP1
+     ]]>
+    </select>
+    
+    <select id="selectCompanys" resultType="hashmap"> <![CDATA[
+	    SELECT 
+	    	 CD_TP_MEANING, COMPANY_CODE, CD_TP
+	    FROM 
+	    	POSMINI.TB_U40_ES_MA_102
+    	WHERE 
+    		FK_CD_TP='ES_MENU_COMCODE'
+    		AND ACTIVE_FLAG='Y'
+    	ORDER BY 
+    		SEARCH_SORT_SEQ
+     ]]>
+    </select>
+    <select id="selectMenuByCompany" resultType="hashmap"> 
+		SELECT B.* 
+		FROM (
+			SELECT  
+				COMPANY_CODE, 
+				ATTRIBUTE1 MENU_ID ,
+				CD_TP_MEANING KOR_NAME,
+				CD_V_EXPLAIN,
+				CD_TP1,
+				FK_CD_TP,
+				--SEARCH_SORT_SEQ,
+				DEPTH
+				--,ATTRIBUTE2 menushowYN
+				,COMPANY_CODE useComCode,
+				SEARCH_SORT_SEQ
+			FROM
+				POSMINI.TB_U40_ES_MA_101
+			WHERE 
+				CD_TP='ES_MENU'
+				
+	     		AND ACTIVE_FLAG='Y' --삭제여부
+	    		AND ATTRIBUTE2='Y'  --메뉴xml에 표시여부(폐기된 구메뉴 또는 검색LOG등록을 위한 코드일 경우 N)
+	 			AND COMPANY_CODE in ('00',#{companyCode}) --사용회사코드(상위 쿼리의 CD_TP)
+	 			AND NOT REGEXP_LIKE(nvl(ATTRIBUTE5,'00') ,#{companyCode}) --미사용회사코드(상위 쿼리의 CD_TP)
+ 			) B
+ 		WHERE DEPTH !='0'
+		start with nvl(FK_CD_TP, '0')='0' connect by PRIOR CD_TP1=FK_CD_TP
+		ORDER siblings BY 
+			SEARCH_SORT_SEQ asc 
+    </select>
+    <select id="selectMenuDetailsByCompanyAndMenu2" resultType="hashmap"> 
+		SELECT 
+			ATTRIBUTE1 MENUID ,
+	       CD_TP_MEANING KOR_NAME,
+	       ATTRIBUTE3 ENG_NAME,
+	       '' COMPANY_CODE,
+	       CD_TP1,
+	       '0'  META,
+	       '' CD_TP_MEANING,
+	       '' EXPLAIN1,
+	       '' EXPLAIN2,
+	       COMPANY_CODE useComCode,
+	       nvl(ATTRIBUTE5, '-') notUseComCode,
+           ATTRIBUTE4 infraType
+     FROM 
+     	POSMINI.TB_U40_ES_MA_101
+     WHERE 
+     	CD_TP='ES_MENU'
+     	AND ACTIVE_FLAG='Y' --삭제여부
+    	AND ATTRIBUTE2='Y'  --메뉴xml에 표시여부(폐기된 구메뉴 또는 검색LOG등록을 위한 코드일 경우 N)
+    	AND CD_TP1=#{cd_tp1}
+ 		AND COMPANY_CODE in ('00',#{companyCode}) --사용회사
+		AND NOT REGEXP_LIKE(nvl(ATTRIBUTE5,'00') ,#{companyCode}) --미사용회사
+     
+     UNION 
+
+	SELECT 
+		'' MENUID, '' KOR_NAME, '' ENG_NAME,  
+		A.COMPANY_CODE, A.CD_TP CD_TP1,A.CD_TP1 META,A.CD_TP_MEANING,
+		B.CD_TP_MEANING EXPLAIN1,B.CD_V_EXPLAIN EXPLAIN2, 
+		'' useComCode, '' notUseComCode,
+        '' infraType
+	 FROM
+	 	POSMINI.TB_U40_ES_MA_101 A 
+	 LEFT JOIN (
+	 	SELECT * 
+	    FROM 
+	    	POSMINI.TB_U40_ES_MA_101
+    	WHERE 
+    		CD_TP='ES_MENU_META'
+	 ) B 
+	 	ON A.CD_TP1 = B.CD_TP1
+	 WHERE 
+	 	<if test="companyCode != '30' ">
+		 A.COMPANY_CODE IN ('00','F00',#{companyCode})  
+		 </if>
+		 <if test="companyCode eq '30' ">
+		 A.COMPANY_CODE IN ('00',#{companyCode})  
+		 </if>
+		 AND A.CD_TP = #{cd_tp1}
+		 
+	 ORDER BY META
+    </select>
+    <select id="selectMetaListByMetas" resultType="hashmap">
+	SELECT 
+		A.COMPANY_CODE,
+		A.CD_TP,
+		A.CD_TP1 META,
+		A.CD_TP_MEANING, 
+		B.MENUID, 
+		NVL(B.KOR_NAME, B.MENUID) KOR_NAME,
+		B.ATTRIBUTE5
+	FROM 
+		POSMINI.TB_U40_ES_MA_101 A
+	INNER JOIN (
+		SELECT 
+			COMPANY_CODE,
+			ATTRIBUTE1 MENUID ,
+			CD_TP_MEANING KOR_NAME,
+			CD_TP1,
+			SEARCH_SORT_SEQ,
+			ATTRIBUTE5
+	     FROM 
+	     	POSMINI.TB_U40_ES_MA_101
+	     WHERE 
+	     	CD_TP='ES_MENU'
+	     	AND ACTIVE_FLAG='Y' --삭제여부
+	    	AND ATTRIBUTE2='Y'  --메뉴xml에 표시여부(폐기된 구메뉴 또는 검색LOG등록을 위한 코드일 경우 N)
+	    	<if test="companyCode !=null">
+	 		AND COMPANY_CODE in ('00',#{companyCode}) --사용회사
+			AND NOT REGEXP_LIKE(nvl(ATTRIBUTE5,'00') ,#{companyCode}) --미사용회사
+			</if>
+	) B ON A.CD_TP = B.CD_TP1
+	WHERE 
+		A.CD_TP1=#{cd_tp1}
+		<if test="companyCode !=null">
+		AND A.COMPANY_CODE = #{companyCode}
+		</if>
+		<if test="cd_tp_meaning !=null">
+		AND A.CD_TP_MEANING LIKE '%'||#{cd_tp_meaning}||'%'
+		</if>
+		AND INSTR(NVL(B.ATTRIBUTE5,'-'),A.COMPANY_CODE)=0 --메뉴사용안하는 회사코드에 속성코드가 들어있으면 안된다
+		AND B.COMPANY_CODE IN ('00','F00',A.COMPANY_CODE)   --메뉴 회사코드는 00,F00,또는 메뉴 회사코드를 갖고있는 속성을 사용한다.
+	GROUP BY A.COMPANY_CODE,
+		A.CD_TP,
+		A.CD_TP1,
+		A.CD_TP_MEANING, 
+		B.MENUID, 
+		NVL(B.KOR_NAME, B.MENUID),        
+		B.ATTRIBUTE5
+	ORDER BY 
+		META,COMPANY_CODE
+    </select>
+    
+    <select id="selectMenucodeByMeta" resultType="hashmap">
+	    SELECT 
+			    DISTINCT A.CD_TP MENU_CODE, 
+			    B.MENU MENUID,
+                NVL(B.CD_TP_MEANING, B.MENU) CD_TP_MEANING,
+                B.DEPTH
+		FROM 
+		    POSMINI.TB_U40_ES_MA_101 A
+		LEFT JOIN (
+		    SELECT 
+		        ATTRIBUTE1 MENU, 
+		        CD_TP1 MENU_CODE,
+                   CD_TP_MEANING,
+                   DEPTH
+		    FROM 
+		        POSMINI.TB_U40_ES_MA_101
+		    WHERE 
+		        CD_TP='ES_MENU' 
+		        AND ACTIVE_FLAG='Y' 
+	        	AND ATTRIBUTE2='Y'
+	        	AND FK_CD_TP <![CDATA[<>]]> 'EM030000'
+		) B ON A.CD_TP = B.MENU_CODE
+		WHERE 
+		    CD_TP1=#{cd_tp1}
+		    AND FK_CD_TP = 'ES_MENU'
+		    AND CD_TP NOT LIKE 'EM03%'
+		ORDER BY 
+		    B.MENU
+    </select>
+    
+    <select id="selectNotExistMenucodeByMeta" resultType="hashmap"> 
+    --전체 메뉴중 선택한 속성이 등록된 메뉴가 아닌 것   
+    SELECT CD_TP1 MENU_CODE,ATTRIBUTE1 MENUID,CD_TP_MEANING,DEPTH
+	FROM POSMINI.TB_U40_ES_MA_101 B
+	WHERE CD_TP='ES_MENU'
+	  AND ACTIVE_FLAG='Y'
+	  AND ATTRIBUTE2='Y'
+	  AND NOT Exists(
+	  SELECT '*'
+		    FROM POSMINI.TB_U40_ES_MA_101 D
+		    WHERE D.FK_CD_TP = 'ES_MENU'
+		      and D.CD_TP1=#{cd_tp1}
+		      and D.CD_TP = B.CD_TP1
+		      and INSTR(NVL(B.ATTRIBUTE5,'-'),D.COMPANY_CODE)=0 --메뉴의 사용안하는 회사코드 중에 속성의 회사코드가 포함되지 않아야한다.
+		      and D.COMPANY_CODE='00' --메뉴속성코드가 00인 것이 없으면, 다른 회사코드를 추가할 수 있어야 한다.
+	  )
+	AND FK_CD_TP != 'EM030000' --공지사항 하위메뉴
+	AND CD_TP1 !='EM000000' --메뉴시작
+	AND CD_TP1 !='EM470000'--provideIF
+	AND CD_TP1 !='EM460000'--ElaConfig
+	ORDER BY MENUID
+    </select>
+    
+    <select id="selectCompanyByMetaMenu" resultType="hashmap">
+    SELECT 
+    	DISTINCT COMPANY_CODE, 
+    	NVL(CD_TP_MEANING,'공통') COMPANY_NAME, 
+    	NVL(TO_CHAR(SEARCH_SORT_SEQ),'00') SEARCH_SORT_SEQ
+	FROM(
+		SELECT 
+			A.COMPANY_CODE, 
+			B.CD_TP_MEANING, 
+			B.SEARCH_SORT_SEQ
+		FROM 
+			POSMINI.TB_U40_ES_MA_101 A
+		LEFT JOIN (
+		    SELECT 
+		    	COMPANY_CODE, 
+		    	CD_TP_MEANING, 
+		    	SEARCH_SORT_SEQ, 
+		    	CD_TP
+		 	FROM 
+		 		POSMINI.TB_U40_ES_MA_102 
+		 	WHERE 
+		 		FK_CD_TP='ES_MENU_COMCODE'
+		) B ON A.COMPANY_CODE = B.CD_TP
+		
+		WHERE 
+			A.FK_CD_TP = 'ES_MENU'
+			AND CD_TP1 = #{cd_tp1}
+			AND A.CD_TP IN 
+			 <foreach collection="menu_list" item="item" index="index" separator="," open="(" close=")">
+                 #{item}
+             </foreach>
+         
+		)
+	ORDER BY 
+		CAST(SEARCH_SORT_SEQ as INTEGER)
+    </select>
+    
+    <select id="selectNotExistCompanyByMetaMenu" resultType="hashmap">
+	 -- 전체 회사코드 중,선택한 메뉴를 사용하고, 선택한 속성이 등록되지 않은 회사코드
+SELECT * FROM (
+	SELECT CD_TP COMPANY_CODE, --속성의 회사코드는 CD_TP값(41_daewoo) 사용
+    	NVL(CD_TP_MEANING,'공통') COMPANY_NAME, 
+    	NVL(TO_CHAR(SEARCH_SORT_SEQ),'00') SEARCH_SORT_SEQ
+	FROM POSMINI.TB_U40_ES_MA_102 C
+	WHERE FK_CD_TP='ES_MENU_COMCODE'
+	  AND NOT Exists (
+	    SELECT '*'
+	    FROM POSMINI.TB_U40_ES_MA_101 A
+	    WHERE A.CD_TP = 'ES_MENU'
+	      AND A.CD_TP1 IN 
+			 <foreach collection="menu_list" item="item" index="index" separator="," open="(" close=")">
+                 #{item}
+             </foreach>
+	      AND A.ATTRIBUTE5 like '%'||C.COMPANY_CODE||'%' 
+          AND (SELECT count(*) FROM POSMINI.TB_U40_ES_MA_101 A
+	            WHERE A.CD_TP = 'ES_MENU' 
+	            AND A.CD_TP1 IN 
+	            <foreach collection="menu_list" item="item" index="index" separator="," open="(" close=")">
+	             #{item}
+	         	</foreach>
+	            AND COMPANY_CODE=C.COMPANY_CODE ) ='0') --사용하지 않는 회사코드 제외
+	  AND Exists(
+	    SELECT *
+	    FROM POSMINI.TB_U40_ES_MA_101 B
+	    WHERE B.CD_TP = 'ES_MENU'
+	      AND B.CD_TP1 IN 
+			 <foreach collection="menu_list" item="item" index="index" separator="," open="(" close=")">
+                 #{item}
+             </foreach>
+	      AND B.COMPANY_CODE in ('00',
+	          C.COMPANY_CODE) ) --사용하는 회사코드 포함(공통 또는 특정회사)
+	  AND NOT Exists (
+	    SELECT *
+	    FROM POSMINI.TB_U40_ES_MA_101 D
+	    WHERE D.FK_CD_TP = 'ES_MENU'
+	      and D.CD_TP1=#{cd_tp1}
+	      and D.CD_TP IN 
+			 <foreach collection="menu_list" item="item" index="index" separator="," open="(" close=")">
+                 #{item}
+             </foreach>
+	      and COMPANY_CODE=C.CD_TP) --선택한 속성을 사용하는 회사코드 제외(속성의 회사코드는 CD_TP값(41_daewoo) 사용)
+          --속성추가시 00, F00 사용가능하도록 추가해줌
+          UNION ALL
+          SELECT '00' COMPANY_CODE, '공통' COMPANY_NAME, '0.0' SEARCH_SORT_SEQ FROM DUAL
+          UNION ALL
+          SELECT 'F00' COMPANY_CODE, '그룹사공통' COMPANY_NAME, '0.1' SEARCH_SORT_SEQ FROM DUAL
+	)
+	ORDER BY 
+		CAST(SEARCH_SORT_SEQ as INTEGER)
+    </select>
+    <select id="selectMenuDuplication" resultType="hashmap">
+    SELECT 
+    	CD_TP1
+    FROM 
+    	POSMINI.TB_U40_ES_MA_101 
+	WHERE 
+		<if test="old_company_code eq null ">
+		COMPANY_CODE = #{company_code}
+		</if>
+		 <if test="old_company_code != null ">
+		COMPANY_CODE = #{old_company_code}
+		</if>
+		AND CD_TP='ES_MENU'
+		AND CD_TP1 =#{cd_tp1}
+    </select>
+    
+    <select id="selectMenuMetaDuplication" resultType="hashmap">
+    SELECT 
+    	CD_TP1
+    FROM 
+    	POSMINI.TB_U40_ES_MA_101 
+	WHERE 
+		COMPANY_CODE = '00' 
+		AND CD_TP='ES_MENU_META'
+		AND CD_TP1 =#{cd_tp1}
+    </select>
+    
+    <select id="selectLogCodeDuplication" resultType="hashmap">
+    SELECT 
+    	CD_TP1
+    FROM 
+    	POSMINI.TB_U40_ES_MA_101 
+	WHERE CD_TP= #{cd_tp}
+		AND CD_TP1 =#{cd_tp1}
+    </select>
+    
+    <select id="selectCodeTypeInfoDuplication" resultType="hashmap">
+    SELECT 
+    	CD_TP
+    FROM 
+    	POSMINI.TB_U40_ES_MA_102 
+	WHERE 
+		COMPANY_CODE = #{company_code}
+		AND FK_CD_TP IS NULL
+		AND CD_TP =#{cd_tp}
+    </select>
+    
+    <select id="selectCodeTypeInfoDetailDuplication" resultType="hashmap">
+    SELECT 
+    	CD_TP
+    FROM 
+    	POSMINI.TB_U40_ES_MA_102 
+	WHERE 
+		COMPANY_CODE = #{company_code}
+		AND FK_CD_TP = #{fk_cd_tp}
+		AND CD_TP =#{cd_tp}
+		AND DEPTH='1'
+    </select>
+   
+    <update id="updateMetaValues">
+    UPDATE 
+	    POSMINI.TB_U40_ES_MA_101
+	SET 
+	    CD_TP_MEANING = #{metaValue},
+	    LAST_UPDATE_PROGRAM_ID = 'monitoring.codeService',
+	    LAST_UPDATE_TIMESTAMP = SYSDATE
+	WHERE
+	    CD_TP1 = #{cd_tp1}
+	    AND CD_TP IN 
+	    <foreach collection="menu_list" item="item" index="index" separator="," open="(" close=")">
+            #{item}
+        </foreach>
+	    AND COMPANY_CODE IN
+	    <foreach collection="companyCode" item="item" index="index" separator="," open="(" close=")">
+            #{item}
+        </foreach>
+    </update>
+    
+    <insert id="insertMetaToMenu">
+	    INSERT ALL
+	    <foreach collection="companyCode" item="company" index="index" separator=" ">
+	        <foreach collection="menu_list" item="menu" index="i" separator=" ">
+	            INTO POSMINI.TB_U40_ES_MA_101(COMPANY_CODE,CD_TP,CD_TP1,CD_TP_MEANING,FK_CD_TP, CREATED_PROGRAM_ID, CREATION_TIMESTAMP)
+			   VALUES (#{company},#{menu},#{cd_tp1},#{metaValue},'ES_MENU', 'monitoring.codeService', SYSDATE)     
+	        </foreach>
+	    </foreach>
+    	SELECT * 
+    	FROM DUAL
+    </insert>
+    
+    <insert id="insertMenu">
+	    INSERT INTO 
+	    	POSMINI.TB_U40_ES_MA_101
+	    		(COMPANY_CODE, CD_TP, CD_TP1, CD_TP_MEANING, CD_V_EXPLAIN, FK_CD_TP, SEARCH_SORT_SEQ, DEPTH, ACTIVE_FLAG, 
+	    		ATTRIBUTE1, ATTRIBUTE2, ATTRIBUTE3, ATTRIBUTE4, ATTRIBUTE5, CREATED_PROGRAM_ID,CREATION_TIMESTAMP)
+		    VALUES 
+		    	(#{company_code} ,'ES_MENU', #{cd_tp1}, #{cd_tp_meaning}, #{cd_v_explain}, #{fk_cd_tp}, #{search_sort_seq}, #{depth}, #{active_flag}, 
+		    	 #{attribute1}, #{attribute2}, #{attribute3}, #{attribute4}, #{attribute5}, 'monitoring.codeService', SYSDATE)
+    </insert>
+    
+    <insert id="insertMenuMeta">
+	    INSERT INTO 
+	    	POSMINI.TB_U40_ES_MA_101
+	    		(COMPANY_CODE, CD_TP, CD_TP1, CD_TP_MEANING, CD_V_EXPLAIN, FK_CD_TP, SEARCH_SORT_SEQ, DEPTH, ACTIVE_FLAG, 
+	    		CREATED_PROGRAM_ID,CREATION_TIMESTAMP)
+		    VALUES 
+		    	('00' ,'ES_MENU_META', #{cd_tp1}, #{cd_tp_meaning}, #{cd_v_explain}, #{fk_cd_tp}, #{search_sort_seq}, #{depth}, #{active_flag}, 
+		    	'monitoring.codeService', SYSDATE)
+    </insert>
+    
+    <insert id="insertLogCode">
+    INSERT INTO 
+	    	POSMINI.TB_U40_ES_MA_101
+	    		(COMPANY_CODE, CD_TP, CD_TP1, CD_TP_MEANING, CD_V_EXPLAIN, FK_CD_TP, SEARCH_SORT_SEQ, DEPTH, ACTIVE_FLAG, 
+	    		ATTRIBUTE1, ATTRIBUTE2, ATTRIBUTE3, ATTRIBUTE4, ATTRIBUTE5, CREATED_PROGRAM_ID,CREATION_TIMESTAMP)
+		    VALUES 
+		    	(#{company_code} ,#{cd_tp}, #{cd_tp1}, #{cd_tp_meaning}, #{cd_v_explain}, #{fk_cd_tp}, #{search_sort_seq}, #{depth}, #{active_flag}, 
+		    	 #{attribute1}, #{attribute2}, #{attribute3}, #{attribute4}, #{attribute5}, 'monitoring.codeService', SYSDATE)
+    </insert>
+    
+    <insert id="insertCodeTypeInfo">
+    INSERT INTO 
+	    	POSMINI.TB_U40_ES_MA_102
+	    		(COMPANY_CODE, CD_TP, CD_TP_MEANING, CD_V_EXPLAIN, SEARCH_SORT_SEQ, DEPTH, ACTIVE_FLAG, 
+	    		ATTRIBUTE1, ATTRIBUTE2, ATTRIBUTE3, ATTRIBUTE4, ATTRIBUTE5, CREATED_OBJECT_ID,CREATION_TIMESTAMP)
+		    VALUES 
+		    	(#{company_code} ,#{cd_tp}, #{cd_tp_meaning}, #{cd_v_explain}, #{search_sort_seq}, #{depth}, #{active_flag}, 
+		    	 #{attribute1}, #{attribute2}, #{attribute3}, #{attribute4}, #{attribute5}, 'monitoring.codeService', SYSDATE)
+    </insert>
+    
+    <insert id="insertCodeTypeInfoDetail">
+    INSERT INTO 
+	    	POSMINI.TB_U40_ES_MA_102
+	    		(COMPANY_CODE, CD_TP,FK_CD_TP, CD_TP_MEANING, CD_V_EXPLAIN, SEARCH_SORT_SEQ, DEPTH, ACTIVE_FLAG, 
+	    		ATTRIBUTE1, ATTRIBUTE2, ATTRIBUTE3, ATTRIBUTE4, ATTRIBUTE5, CREATED_OBJECT_ID,CREATION_TIMESTAMP)
+		    VALUES 
+		    	(#{company_code} ,#{cd_tp},#{fk_cd_tp}, #{cd_tp_meaning}, #{cd_v_explain}, #{search_sort_seq}, #{depth}, #{active_flag}, 
+		    	 #{attribute1}, #{attribute2}, #{attribute3}, #{attribute4}, #{attribute5}, 'monitoring.codeService', SYSDATE)
+    </insert>
+    
+    <update id="updateMenu">
+    UPDATE 
+	    POSMINI.TB_U40_ES_MA_101
+	SET 
+		COMPANY_CODE = #{company_code},
+	    CD_TP_MEANING = #{cd_tp_meaning}, 
+	    CD_V_EXPLAIN = #{cd_v_explain},
+	    FK_CD_TP = #{fk_cd_tp},
+	    SEARCH_SORT_SEQ = #{search_sort_seq},
+	    DEPTH = #{depth},
+	    ACTIVE_FLAG = #{active_flag},
+	    ATTRIBUTE1 = #{attribute1},
+	    ATTRIBUTE2 = #{attribute2},
+	    ATTRIBUTE3 = #{attribute3},
+	    ATTRIBUTE4 = #{attribute4},
+	    ATTRIBUTE5 = #{attribute5},
+	    LAST_UPDATE_PROGRAM_ID = 'monitoring.codeService',
+	    LAST_UPDATE_TIMESTAMP = SYSDATE
+	WHERE
+	    CD_TP1 = #{cd_tp1}
+	    AND CD_TP = 'ES_MENU'
+	    AND COMPANY_CODE = #{old_company_code}
+    </update>
+    
+    <update id="updateMenuMeta">
+    UPDATE 
+	    POSMINI.TB_U40_ES_MA_101
+	SET 
+	    CD_TP_MEANING = #{cd_tp_meaning}, 
+	    CD_V_EXPLAIN = #{cd_v_explain},
+	    FK_CD_TP = #{fk_cd_tp},
+	    SEARCH_SORT_SEQ = #{search_sort_seq},
+	    DEPTH = #{depth},
+	    ACTIVE_FLAG = #{active_flag},
+	    LAST_UPDATE_PROGRAM_ID = 'monitoring.codeService',
+	    LAST_UPDATE_TIMESTAMP = SYSDATE
+	WHERE
+	    CD_TP1 = #{cd_tp1}
+	    AND CD_TP = 'ES_MENU_META'
+	    AND COMPANY_CODE ='00'
+    </update>
+    
+     <update id="updateLogCode">
+    UPDATE 
+	    POSMINI.TB_U40_ES_MA_101
+	SET 
+	    COMPANY_CODE = #{company_code},
+	    CD_TP_MEANING = #{cd_tp_meaning}, 
+	    CD_V_EXPLAIN = #{cd_v_explain},
+	    FK_CD_TP = #{fk_cd_tp},
+	    SEARCH_SORT_SEQ = #{search_sort_seq},
+	    DEPTH = #{depth},
+	    ACTIVE_FLAG = #{active_flag},
+	    ATTRIBUTE1 = #{attribute1},
+	    ATTRIBUTE2 = #{attribute2},
+	    ATTRIBUTE3 = #{attribute3},
+	    ATTRIBUTE4 = #{attribute4},
+	    ATTRIBUTE5 = #{attribute5},
+	    LAST_UPDATE_PROGRAM_ID = 'monitoring.codeService',
+	    LAST_UPDATE_TIMESTAMP = SYSDATE
+	WHERE
+	    CD_TP1 = #{cd_tp1}
+	    AND CD_TP = #{cd_tp}
+    </update>
+    
+    <update id="updateCodeTypeInfo">
+    UPDATE 
+	    POSMINI.TB_U40_ES_MA_102
+	SET 
+	    CD_TP_MEANING = #{cd_tp_meaning}, 
+	    CD_V_EXPLAIN = #{cd_v_explain},
+	    SEARCH_SORT_SEQ = #{search_sort_seq},
+	    DEPTH = #{depth},
+	    ACTIVE_FLAG = #{active_flag},
+	    ATTRIBUTE1 = #{attribute1},
+	    ATTRIBUTE2 = #{attribute2},
+	    ATTRIBUTE3 = #{attribute3},
+	    ATTRIBUTE4 = #{attribute4},
+	    ATTRIBUTE5 = #{attribute5},
+	    LAST_UPDATED_OBJECT_ID = 'monitoring.codeService',
+	    LAST_UPDATE_TIMESTAMP = SYSDATE
+	WHERE
+	    CD_TP = #{cd_tp}
+	    AND FK_CD_TP IS NULL
+	    AND COMPANY_CODE =#{company_code}
+    </update>
+    
+    <update id="updateCodeTypeInfoDetail">
+    UPDATE 
+	    POSMINI.TB_U40_ES_MA_102
+	SET 
+	    CD_TP_MEANING = #{cd_tp_meaning}, 
+	    CD_V_EXPLAIN = #{cd_v_explain},
+	    SEARCH_SORT_SEQ = #{search_sort_seq},
+	    ACTIVE_FLAG = #{active_flag},
+	    ATTRIBUTE1 = #{attribute1},
+	    ATTRIBUTE2 = #{attribute2},
+	    ATTRIBUTE3 = #{attribute3},
+	    ATTRIBUTE4 = #{attribute4},
+	    ATTRIBUTE5 = #{attribute5},
+	    LAST_UPDATED_OBJECT_ID = 'monitoring.codeService',
+	    LAST_UPDATE_TIMESTAMP = SYSDATE
+	WHERE
+	    CD_TP = #{cd_tp}
+	    AND FK_CD_TP = #{fk_cd_tp}
+	    AND COMPANY_CODE =#{company_code}
+	    AND DEPTH = '1'
+    </update>
+    
+    <delete id="deleteMenu">
+    	DELETE FROM 
+    		POSMINI.TB_U40_ES_MA_101 
+		WHERE 
+			CD_TP1 IN (${cd_tp1})
+		    AND CD_TP = 'ES_MENU'
+	    	AND COMPANY_CODE ='00'
+    </delete>
+    
+    <delete id="deleteMenuMeta">
+    	DELETE FROM 
+    		POSMINI.TB_U40_ES_MA_101 
+		WHERE 
+			CD_TP1 IN (${cd_tp1})
+		    AND CD_TP = 'ES_MENU_META'
+	    	AND COMPANY_CODE ='00'
+    </delete>
+    
+    <delete id="deleteLogCode">
+    	DELETE FROM 
+    		POSMINI.TB_U40_ES_MA_101 
+		WHERE 
+			CD_TP1 IN (${cd_tp1})
+		    AND CD_TP = #{cd_tp}
+    </delete>
+    
+    <delete id="deleteCodeTypeInfo">
+    	DELETE FROM 
+    		POSMINI.TB_U40_ES_MA_102 
+		WHERE 
+			CD_TP IN (${cd_tp})
+		    AND FK_CD_TP IS NULL
+	    	AND COMPANY_CODE = '00'
+    </delete>
+    
+    <delete id="deleteCodeTypeInfoDetail">
+    	DELETE FROM 
+    		POSMINI.TB_U40_ES_MA_102 
+		WHERE 
+			(CD_TP, FK_CD_TP, DEPTH, COMPANY_CODE) IN
+			<foreach collection="delete_list" item="item" index="index" separator="," open="(" close=")">
+				${item}
+			</foreach>
+    </delete>
+    
+    <delete id="deleteCodeTypeInfoDetailByFK_CD_TP">
+    	DELETE FROM 
+    		POSMINI.TB_U40_ES_MA_102 
+		WHERE 
+			FK_CD_TP = #{FK_CD_TP}
+    </delete>
+    
+    <delete id="deleteMetaInMenu">
+    	DELETE FROM 
+    		POSMINI.TB_U40_ES_MA_101 
+		WHERE 
+			CD_TP1 = #{cd_tp1}
+	    	AND CD_TP IN 
+		    <foreach collection="menu_list" item="item" index="index" separator="," open="(" close=")">
+	            #{item}
+	        </foreach>
+		    AND COMPANY_CODE IN
+		    <foreach collection="companyCode" item="item" index="index" separator="," open="(" close=")">
+	            #{item}
+	        </foreach>
+    </delete>
+    
+    <select id="selectCodeInfo" resultType="hashmap">
+    	SELECT 
+		    CD_TP,
+		    CD_TP_MEANING
+		FROM 
+		    POSMINI.TB_U40_ES_MA_102 
+		WHERE 
+		    FK_CD_TP=#{fk_cd_tp}
+		    AND ACTIVE_FLAG='Y'
+		    AND COMPANY_CODE=#{company_code}
+		    AND CD_TP=#{cd_tp}
+		ORDER BY 
+		    SEARCH_SORT_SEQ
+    </select>
+    
+    <select id="selectTable102" resultType="hashmap">
+    SELECT 
+	    NVL(COMPANY_CODE,'') COMPANY_CODE, NVL(CD_TP,'') CD_TP,  
+	    NVL(CD_TP_MEANING,'') CD_TP_MEANING, NVL(CD_V_EXPLAIN,'') CD_V_EXPLAIN, 
+	    NVL(FK_CD_TP,'') FK_CD_TP, NVL(SEARCH_SORT_SEQ,'') SEARCH_SORT_SEQ, NVL(DEPTH,'') DEPTH, 
+	    NVL(ACTIVE_FLAG,'') ACTIVE_FLAG, NVL(ATTRIBUTE1,'') ATTRIBUTE1, NVL(ATTRIBUTE2,'') ATTRIBUTE2, 
+	    NVL(ATTRIBUTE3,'') ATTRIBUTE3, NVL(ATTRIBUTE4,'') ATTRIBUTE4, NVL(ATTRIBUTE5,'') ATTRIBUTE5, 
+	    NVL(TO_CHAR(CREATION_TIMESTAMP),'') CREATION_TIMESTAMP, NVL(TO_CHAR(LAST_UPDATE_TIMESTAMP),'') LAST_UPDATE_TIMESTAMP
+	FROM 
+	    POSMINI.TB_U40_ES_MA_102
+	WHERE
+	    1=1 
+	    <if test="CD_TP != null ">
+	    AND CD_TP = #{CD_TP}
+	    </if>
+	    <if test="CD_TP_MEANING != null ">
+	    AND CD_TP_MEANING = #{CD_TP_MEANING}
+	    </if>
+	    <if test="FK_CD_TP != null ">
+    	AND FK_CD_TP = #{FK_CD_TP} 
+    	</if>
+    	<if test="ACTIVE_FLAG != null ">
+    	AND ACTIVE_FLAG = #{ACTIVE_FLAG}
+    	</if>
+    	<if test="DEPTH != null ">
+    	AND DEPTH = #{DEPTH}
+    	</if>
+    </select>
+    
+    <insert id="fileInsert"> 
+    	${QUERY}
+    </insert>
+</mapper>

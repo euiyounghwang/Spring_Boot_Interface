@@ -1,0 +1,87 @@
+
+###################################################################
+###################################################################
+###################################################################
+###################################################################
+# CORS
+###################################################################
+###################################################################
+###################################################################
+###################################################################
+
+# Reference URL
+https://linked2ev.github.io/gitlog/2019/09/15/springboot-mvc-13-%EC%8A%A4%ED%94%84%EB%A7%81%EB%B6%80%ED%8A%B8-MVC-Filter-%EC%84%A4%EC%A0%95/
+
+
+# Tomcat 설정
+(conf/web.xml)
+<filter>
+    <filter-name>CORSFilter</filter-name>
+    <filter-class>com.poscoict.postech.door.InterfaceFilter</filter-class>
+</filter>
+  
+<filter-mapping>
+    <filter-name>CORSFilter</filter-name>
+    <url-pattern>/S23/S23C10/*</url-pattern>
+</filter-mapping>
+
+
+# Spring Boot
+
+# com.poscoict.postech.configuration
+
+@Configuration
+public class FilterConfiguration implements WebMvcConfigurer {
+	
+	@Bean
+	public FilterRegistrationBean<InterfaceFilter> addFilter() {
+		FilterRegistrationBean<InterfaceFilter> regBean = new FilterRegistrationBean<InterfaceFilter>(new InterfaceFilter());
+		regBean.addUrlPatterns("/*");
+		return regBean;
+	}
+	
+//	@Override
+//	public void addInterceptors(InterceptorRegistry registry) {
+//		// TODO Auto-generated method stub
+//		registry.addInterceptor(new StudyInterceptor()).addPathPatterns("/**");
+////		WebMvcConfigurer.super.addInterceptors(registry);
+//	}
+}
+
+
+
+# com.poscoict.postech.door
+
+
+public class InterfaceFilter implements Filter{
+
+	@Override
+	public void init(FilterConfig filterConfig) throws ServletException {
+		System.out.println("init CORSFilter");
+	}
+	
+	@Override
+	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+			throws IOException, ServletException {
+		// TODO Auto-generated method stub
+		
+//		System.out.println("@@@@In Filter@@@");
+//		chain.doFilter(request, response);
+		 HttpServletResponse res = (HttpServletResponse) response;
+		 res.setHeader("Access-Control-Allow-Origin", "*");
+		 res.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE");
+		 res.setHeader("Access-Control-Max-Age", "3600");
+		 res.setHeader("Access-Control-Allow-Headers", "x-requested-with");
+	   chain.doFilter(request, res);
+
+//		System.out.println("@@@@Out Filter@@@");
+	}
+	
+	@Override
+	public void destroy() {
+		System.out.println("destroy CORSFilter");
+	}
+
+}
+
+

@@ -1,0 +1,35 @@
+spring:
+  profiles: 
+    active: prd
+  timerName: exampleTimer
+  datasource:
+    driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+---
+mybatis:
+  mapper-locations: classpath:mybatis/mapper/**/*.xml
+  configuration:
+    lazyLoadingEnabled: true
+    aggressiveLazyLoading: false
+    mapUnderscoreToCamelCase: true
+    callSettersOnNulls: true
+---
+spring:
+  profiles: dev
+  task:
+    fixedDelay: 1000
+    name: localTask
+  datasource:
+  # 서버에 배포할때는 패밀리망으로 배포할것 (DB)
+    url: jdbc:log4jdbc:oracle:thin:@127.0.0.1:1234:DB
+    username: posmini
+    password: demini1
+---
+spring:
+  profiles: prd
+  task:
+    fixedDelay: 1000
+    name: prdTask
+  datasource:
+    url: jdbc:log4jdbc:oracle:thin:@127.0.0.1:1234:DB
+    username: posrwmini
+    password: minirwpwd

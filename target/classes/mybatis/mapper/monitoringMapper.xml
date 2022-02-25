@@ -1,0 +1,148 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.test.test.spring.repository.MonitoringMapper">
+    <select id="commonCodeList" resultType="hashmap"> 
+		SELECT
+		    FK_CD_TP,
+		    CD_TP_MEANING CD_TP,
+		    CD_V_EXPLAIN CD_TP_NM,
+		    ACTIVE_FLAG, /*사용유무(Y/N)*/
+		    ATTRIBUTE1, /*여분항목1*/
+		    ATTRIBUTE2, /*여분항목2*/
+		    ATTRIBUTE3, /*여분항목3*/
+		    ATTRIBUTE4, /*여분항목4*/
+		    ATTRIBUTE5 /*여분항목5*/
+		FROM   
+			POSMINI.TB_U40_ES_MA_102
+		WHERE 
+			1=1
+		<if test="cdTpTp !=null">
+			 AND FK_CD_TP = #{cdTpTp}
+		</if>
+			ORDER BY SEARCH_SORT_SEQ
+	</select>
+	
+	<select id="selectSqlList" resultType="hashmap"> 
+		SELECT * FROM (
+		     SELECT A.*,
+		                 ROWNUM AS RNUM,
+		                 COUNT(*) OVER() AS TOTCNT FROM (
+				SELECT 
+					OBJECT_ID
+				    ,INFO_TITLE
+				    ,DESCRIPTION
+				    ,DESCRIPTION1
+				FROM POSMINI.SQL_DML_LIST
+				WHERE 1=1
+				<if test="where !=null">
+				AND (
+					UPPER(INFO_TITLE) LIKE UPPER('%${where}%')
+					OR UPPER(DESCRIPTION) LIKE UPPER('%${where}%')
+					OR UPPER(DESCRIPTION1) LIKE UPPER('%${where}%')
+					)
+				</if>
+				<if test="host_info !=null">
+				AND 
+					DESCRIPTION1 = #{host_info}
+				</if>
+				ORDER BY 
+					${orderBy}
+			 ) A
+		)<if test="length !=-1"> 
+		WHERE RNUM <![CDATA[> #{start} AND RNUM <= #{length}]]>
+		</if>
+	</select>
+	
+	<select id="selectSql" resultType="hashmap"> 
+		SELECT 
+			OBJECT_ID
+		    ,INFO_TITLE
+		    ,DESCRIPTION
+		    ,DESCRIPTION1
+		    ,DATA_SUIT_CHK
+		    ,SQL_CONT
+		FROM 
+			POSMINI.SQL_DML_LIST
+		WHERE 
+			OBJECT_ID = #{OBJECT_ID}
+	</select>
+	
+	<select id="selectSqlDetail" resultType="hashmap"> 
+		SELECT  
+			OBJECT_ID,
+			ELEMENT_NAME, 
+			NVL(DATA_TYPE, 'STRING') DATA_TYPE ,
+			NVL(ELEMENT_VALUE, ' ') ELEMENT_VALUE 
+		FROM 
+			POSMINI.SQL_DML_LIST_PARM
+		WHERE 
+			OBJECT_ID = #{OBJECT_ID}
+		ORDER BY
+			SEQ
+	</select>
+	
+	<insert id="saveSql">
+	    INSERT INTO 
+	    	POSMINI.SQL_DML_LIST
+	    		(CD_TP, DT_NM_TP, OBJECT_ID, INFO_TITLE, SQL_CONT, SYS_TP, DESCRIPTION, DESCRIPTION1, DATA_SUIT_CHK, CREATED_PROGRAM_ID, CREATION_TIMESTAMP)
+		    VALUES 
+		    	('ESD' ,'QUERY', #{OBJECT_ID}, #{INFO_TITLE}, #{SQL_CONT}, 'U40A', #{DESCRIPTION}, #{DESCRIPTION1}, #{DATA_SUIT_CHK}, 'monitoring.monitoringService', SYSDATE)
+    </insert>
+    
+    <insert id="saveSqlParams">
+	    INSERT ALL
+	    <foreach collection="PARAMS" item="item" index="index" separator=" "> 
+           INTO POSMINI.SQL_DML_LIST_PARM(CD_TP, DT_NM_TP, OBJECT_ID, SEQ, ELEMENT_NAME, DATA_TYPE, ELEMENT_VALUE, CREATED_PROGRAM_ID, CREATION_TIMESTAMP)
+		   VALUES ('ESD','QUERY',#{item.OBJECT_ID},#{item.SEQ},#{item.ELEMENT_NAME},#{item.DATA_TYPE},#{item.ELEMENT_VALUE}, 'monitoring.monitoringService', SYSDATE)
+	    </foreach>
+    	SELECT * 
+    	FROM DUAL
+    </insert>
+    
+    <select id="selectMaxSqlObjectId" resultType="hashmap"> 
+    	SELECT 
+    		LPAD(MAX(OBJECT_ID)+1, 5, 0) OBJECT_ID
+		FROM 
+			POSMINI.SQL_DML_LIST 
+		ORDER BY 
+			OBJECT_ID DESC
+    </select>
+    
+    <delete id="deleteSql">
+    	DELETE FROM 
+    		POSMINI.SQL_DML_LIST 
+		WHERE 
+			OBJECT_ID IN (${OBJECT_ID})
+    </delete>
+    
+    <delete id="deleteSqlParams">
+    	DELETE FROM 
+    		POSMINI.SQL_DML_LIST_PARM
+		WHERE 
+			OBJECT_ID IN (${OBJECT_ID})
+    </delete>
+    <select id="excuteSqlHeaderSelect" resultType="hashmap"> 
+    ${QUERY}
+    </select>
+    <select id="excuteSqlDataTableSelect" resultType="hashmap"> 
+	    SELECT * FROM (
+				     SELECT A.*,
+				                 ROWNUM AS RNUM,
+				                 COUNT(*) OVER() AS TOTCNT FROM (
+	    	${QUERY}
+	    	) A
+    	)<if test="length !=-1"> 
+		WHERE RNUM <![CDATA[> #{start} AND RNUM <= #{length}]]>
+		</if>
+    </select>
+    
+    <update id="excuteSqlUpdate"> 
+    	${QUERY}
+    </update>
+    <delete id="excuteSqlDelete"> 
+    	${QUERY}
+    </delete>
+    <insert id="excuteSqlInsert"> 
+    	${QUERY}
+    </insert>
+		
+</mapper>

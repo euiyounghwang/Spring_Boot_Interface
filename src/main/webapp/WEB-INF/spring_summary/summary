@@ -1,0 +1,67 @@
+Scope 사용 (외부라이브러리추가)
+
+
+간단하게 이야기하면 Local Project에 있는 라이브러리(jar)를 명시적으로 선언하여 사용하는 방식인데
+
+
+이클립스에서 기본 Dynamic Web project 를 만들어서 사용할때 WEB-INF/lib 에 추가해서 사용하는 것과
+
+
+다를것이 없지만 그렇게한다면 Maven으로 빌드때 문제가 발생하므로 Maven을 사용할때는 아래와 같이 사용하는것이 좋다
+
+
+Project내 
+
+
+webapp/WEB-INF/lib/ 위치에 jar 파일을 저장한 후
+
+
+pom.xml 에
+
+
+<dependency>
+
+<dependency> <groupId>smack</groupId> <artifactId>smack-custom</artifactId> <version>1.0.0</version> </dependency>
+
+
+
+			<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-war-plugin</artifactId>
+					<configuration>
+						<webResources>
+							<resource>
+								<directory>lib</directory>
+								<targetPath>WEB-INF/lib/</targetPath>
+								<!-- 스프링 부트는 <targetPath>BOOT-INF/lib/</targetPath> -->
+								<includes>
+									<include>**/*.jar</include>
+								</includes>
+							</resource>
+						</webResources>
+					</configuration>
+			</plugin>
+			
+			
+			
+			
+<groupId>그룹아이디</groupId>
+
+<artifactId>아티팩트아이디</artifactId>
+
+<version>버전</version>
+
+<scope>system</scope>
+
+<systemPath>${basedir}/src/main/webapp/WEB-INF/lib/파일명.jar</systemPath>
+
+</dependency>
+
+
+<dependency>
+	<groupId>com.text.Documents.Office.Poi</groupId>
+	<artifactId>com.text.Documents.Office.Poi0</artifactId>
+	<systemPath>${basedir}/src/main/webapp/WEB-INF/lib/파일명.jar</systemPath>
+	<version>1.0.1</version>
+</dependency>
+
